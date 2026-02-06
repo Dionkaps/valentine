@@ -724,6 +724,7 @@ function createFloatingHeart(container) {
 }
 
 
+
 // ============================================
 // MINIGAMES SECTION
 // ============================================
@@ -756,10 +757,6 @@ function startMinigame(game) {
         case 'cupid-arrow':
             initCupidArrowGame();
             showStage('cupid-arrow');
-            break;
-        case 'heartbeat':
-            initHeartbeatGame();
-            showStage('heartbeat');
             break;
         case 'heart-collector':
             initHeartCollectorGame();
@@ -795,7 +792,7 @@ function hideMinigameWin() {
 }
 
 // ============================================
-// MINIGAME 1: FLAPPY HEART
+// MINIGAME 1: FLAPPY HEART (Endless)
 // ============================================
 
 let flappyState = {
@@ -819,6 +816,7 @@ function initFlappyGame() {
     flappyState.active = false;
     
     document.getElementById('flappy-score').textContent = '0';
+    document.getElementById('flappy-start').innerHTML = "<p>Tap to Start</p>";
     document.getElementById('flappy-start').style.display = 'flex';
     
     // Draw initial state
@@ -844,12 +842,7 @@ function loopFlappyGame() {
     updateFlappyGame();
     drawFlappyGame();
     
-    if (flappyState.score >= 10) {
-        flappyState.active = false;
-        showMinigameWin("Your love gives me wings! 🕊️💜");
-    } else {
-        gameLoopId = requestAnimationFrame(loopFlappyGame);
-    }
+    gameLoopId = requestAnimationFrame(loopFlappyGame);
 }
 
 function updateFlappyGame() {
@@ -866,7 +859,7 @@ function updateFlappyGame() {
     
     // Pipe spawning
     if (flappyState.frame % 100 === 0) {
-        const gap = 100;
+        const gap = 120; // Slightly bigger gap
         const minHeight = 50;
         const maxPos = flappyState.canvas.height - gap - minHeight;
         const topHeight = Math.floor(Math.random() * (maxPos - minHeight + 1) + minHeight);
@@ -908,7 +901,7 @@ function drawFlappyGame() {
     ctx.fillText("🕊️", flappyState.bird.x, flappyState.bird.y + 20);
     
     // Pipes
-    ctx.fillStyle = "#ff80ab";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
     flappyState.pipes.forEach(p => {
         ctx.fillRect(p.x, 0, 40, p.top); // Top pipe
         ctx.fillRect(p.x, p.top + p.gap, 40, flappyState.canvas.height - p.top - p.gap); // Bottom pipe
@@ -917,7 +910,7 @@ function drawFlappyGame() {
 
 function resetFlappyGame() {
     flappyState.active = false;
-    document.getElementById('flappy-start').innerHTML = "<p>Game Over<br>Tap to Try Again</p>";
+    document.getElementById('flappy-start').innerHTML = `<p>Game Over!<br>Score: ${flappyState.score}<br>Tap to Try Again</p>`;
     document.getElementById('flappy-start').style.display = 'flex';
     flappyState.bird.y = 150;
     flappyState.bird.velocity = 0;
@@ -928,13 +921,14 @@ function resetFlappyGame() {
 }
 
 // ============================================
-// MINIGAME 2: LOVE SNAKE
+// MINIGAME 2: LOVE SNAKE (Swipe & Endless)
 // ============================================
 
 let snakeState = {
     canvas: null, ctx: null,
     snake: [], dir: {x: 1, y: 0}, nextDir: {x: 1, y: 0},
-    food: {x: 0, y: 0}, score: 0, active: false, speed: 150, lastTime: 0
+    food: {x: 0, y: 0}, score: 0, active: false, speed: 150, lastTime: 0,
+    touchStartX: 0, touchStartY: 0
 };
 const GRID = 20;
 
@@ -952,12 +946,51 @@ function initSnakeGame() {
     snakeState.active = true;
     
     document.getElementById('snake-score').textContent = '0';
+    document.getElementById('snake-start').style.display = 'none';
     spawnSnakeFood();
     
     requestAnimationFrame(loopSnakeGame);
     
-    // Keyboard controls
+    // Controls
     document.addEventListener('keydown', handleSnakeKey);
+    
+    // Swipe Controls
+    snakeState.canvas.addEventListener('touchstart', (e) => {
+        snakeState.touchStartX = e.touches[0].clientX;
+        snakeState.touchStartY = e.touches[0].clientY;
+        e.preventDefault();
+    }, {passive: false});
+    
+    snakeState.canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // Prevent scrolling
+    }, {passive: false});
+    
+    snakeState.canvas.addEventListener('touchend', (e) => {
+        if (!snakeState.active) {
+            initSnakeGame(); // Restart on tap if game over
+            return;
+        }
+        
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        
+        const dx = touchEndX - snakeState.touchStartX;
+        const dy = touchEndY - snakeState.touchStartY;
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Horizontal
+            if (Math.abs(dx) > 20) { // Threshold
+                if (dx > 0) snakeDir(1, 0); // Right
+                else snakeDir(-1, 0); // Left
+            }
+        } else {
+            // Vertical
+            if (Math.abs(dy) > 20) {
+                if (dy > 0) snakeDir(0, 1); // Down
+                else snakeDir(0, -1); // Up
+            }
+        }
+    });
 }
 
 function snakeDir(x, y) {
@@ -1019,12 +1052,7 @@ function updateSnakeGame() {
     
     // Self collision
     if (snakeState.snake.some(s => s.x === head.x && s.y === head.y)) {
-        // Game Over - Reset
-        snakeState.snake = [{x: 4, y: 4}, {x: 3, y: 4}, {x: 2, y: 4}];
-        snakeState.dir = {x: 1, y: 0};
-        snakeState.nextDir = {x: 1, y: 0};
-        snakeState.score = 0;
-        document.getElementById('snake-score').textContent = '0';
+        gameOverSnake();
         return;
     }
     
@@ -1035,14 +1063,17 @@ function updateSnakeGame() {
         snakeState.score++;
         document.getElementById('snake-score').textContent = snakeState.score;
         spawnSnakeFood();
-        
-        if (snakeState.score >= 10) {
-            snakeState.active = false;
-            showMinigameWin("You've grown my love! 🐍❤️");
-        }
+        // Speed up slightly
+        if (snakeState.score % 5 === 0) snakeState.speed = Math.max(80, snakeState.speed - 10);
     } else {
         snakeState.snake.pop();
     }
+}
+
+function gameOverSnake() {
+    snakeState.active = false;
+    document.getElementById('snake-start').innerHTML = `<p>Game Over!<br>Score: ${snakeState.score}<br>Tap/Swipe to Restart</p>`;
+    document.getElementById('snake-start').style.display = 'flex';
 }
 
 function drawSnakeGame() {
@@ -1054,21 +1085,27 @@ function drawSnakeGame() {
     ctx.fillText(snakeState.food.icon, snakeState.food.x * GRID, snakeState.food.y * GRID + 18);
     
     // Draw Snake
-    ctx.fillStyle = "#4CAF50";
     snakeState.snake.forEach((s, i) => {
         if (i === 0) { // Head
-            ctx.fillStyle = "#66BB6A"; // Lighter green head or face
-            ctx.font = "20px Arial";
-            ctx.fillText("😊", s.x * GRID, s.y * GRID + 18);
+            ctx.fillStyle = "#ff4081";
+            ctx.beginPath();
+            ctx.arc(s.x * GRID + 10, s.y * GRID + 10, 9, 0, Math.PI * 2);
+            ctx.fill();
+            // Eyes
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(s.x * GRID + 7, s.y * GRID + 7, 2, 0, Math.PI * 2);
+            ctx.arc(s.x * GRID + 13, s.y * GRID + 7, 2, 0, Math.PI * 2);
+            ctx.fill();
         } else {
-            ctx.font = "16px Arial";
-            ctx.fillText("💚", s.x * GRID, s.y * GRID + 15);
+            ctx.fillStyle = `rgba(255, 64, 129, ${1 - i/snakeState.snake.length})`;
+            ctx.fillRect(s.x * GRID + 2, s.y * GRID + 2, 16, 16);
         }
     });
 }
 
 // ============================================
-// MINIGAME 3: DINO LOVE RUN
+// MINIGAME 3: DINO LOVE RUN (Endless & New Icon)
 // ============================================
 
 let runnerState = {
@@ -1092,6 +1129,7 @@ function initRunnerGame() {
     runnerState.active = false;
     
     document.getElementById('runner-score').textContent = '0';
+    document.getElementById('runner-start').innerHTML = "<p>Tap to Jump</p>";
     document.getElementById('runner-start').style.display = 'flex';
     
     drawRunnerGame();
@@ -1118,18 +1156,15 @@ function loopRunnerGame() {
     updateRunnerGame();
     drawRunnerGame();
     
-    if (runnerState.score >= 500) {
-        runnerState.active = false;
-        showMinigameWin("You outran all the obstacles! 🏃‍♂️💨❤️");
-    } else {
-        requestAnimationFrame(loopRunnerGame);
-    }
+    gameLoopId = requestAnimationFrame(loopRunnerGame);
 }
 
 function updateRunnerGame() {
     runnerState.frame++;
     runnerState.score++;
-    document.getElementById('runner-score').textContent = runnerState.score;
+    if (runnerState.frame % 10 === 0) { // Update score less frequently visually
+        document.getElementById('runner-score').textContent = runnerState.score;
+    }
     
     // Physics
     runnerState.dino.vy += 0.8; // Gravity
@@ -1143,7 +1178,7 @@ function updateRunnerGame() {
     
     // Spawn Obstacles
     if (runnerState.frame % 120 === 0) {
-        runnerState.obstacles.push({ x: runnerState.canvas.width, type: Math.random() > 0.5 ? '💔' : '🪨' });
+        runnerState.obstacles.push({ x: runnerState.canvas.width, type: Math.random() > 0.5 ? '💔' : '🥀' });
     }
     
     // Move Obstacles & Collision
@@ -1157,7 +1192,7 @@ function updateRunnerGame() {
             
             // Hit!
             runnerState.active = false;
-            document.getElementById('runner-start').innerHTML = "<p>Ouch!<br>Tap to Try Again</p>";
+            document.getElementById('runner-start').innerHTML = `<p>Game Over!<br>Score: ${runnerState.score}<br>Tap to Try Again</p>`;
             document.getElementById('runner-start').style.display = 'flex';
             runnerState.obstacles = [];
             runnerState.score = 0;
@@ -1179,11 +1214,13 @@ function drawRunnerGame() {
     ctx.beginPath();
     ctx.moveTo(0, 260);
     ctx.lineTo(runnerState.canvas.width, 260);
+    ctx.strokeStyle = "#ff9a9e";
+    ctx.lineWidth = 2;
     ctx.stroke();
     
-    // Dino (Runner)
+    // Dino (NOW A HEART)
     ctx.font = "30px Arial";
-    ctx.fillText("🏃", runnerState.dino.x, runnerState.dino.y + 30);
+    ctx.fillText("❤️", runnerState.dino.x, runnerState.dino.y + 30);
     
     // Obstacles
     runnerState.obstacles.forEach(obs => {
@@ -1264,118 +1301,10 @@ function spawnCupidHeart() {
 }
 
 // ============================================
-// MINIGAME 5: HEARTBEAT RHYTHM (Kept)
-// ============================================
-
-let rhythmPerfect = 0;
-let rhythmGood = 0;
-let rhythmHearts = [];
-const RHYTHM_TARGET = 8;
-
-function initHeartbeatGame() {
-    rhythmPerfect = 0;
-    rhythmGood = 0;
-    rhythmHearts = [];
-    document.getElementById('rhythm-perfect').textContent = '0';
-    document.getElementById('rhythm-good').textContent = '0';
-    
-    const track = document.getElementById('rhythm-track');
-    const existingHearts = track.querySelectorAll('.rhythm-heart');
-    existingHearts.forEach(h => h.remove());
-    
-    let heartsSpawned = 0;
-    const interval = setInterval(() => {
-        if (heartsSpawned >= RHYTHM_TARGET) {
-            clearInterval(interval);
-            return;
-        }
-        spawnRhythmHeart();
-        heartsSpawned++;
-    }, 1200);
-    minigameIntervals.push(interval);
-    
-    const tapArea = document.getElementById('rhythm-tap-area');
-    tapArea.onclick = null;
-    tapArea.ontouchstart = null;
-    tapArea.addEventListener('click', handleRhythmTap);
-    tapArea.addEventListener('touchstart', handleRhythmTap);
-}
-
-function spawnRhythmHeart() {
-    const track = document.getElementById('rhythm-track');
-    const heart = document.createElement('div');
-    heart.className = 'rhythm-heart';
-    heart.textContent = '💜';
-    heart.dataset.spawned = Date.now();
-    
-    track.appendChild(heart);
-    rhythmHearts.push(heart);
-    
-    // Remove after animation
-    setTimeout(() => {
-        if (heart.parentNode && !heart.classList.contains('hit')) {
-            heart.remove();
-            rhythmHearts = rhythmHearts.filter(h => h !== heart);
-        }
-    }, 2500);
-}
-
-function handleRhythmTap(e) {
-    e.preventDefault();
-    
-    const tapArea = document.getElementById('rhythm-tap-area');
-    tapArea.classList.add('tapped');
-    setTimeout(() => tapArea.classList.remove('tapped'), 100);
-    
-    // Find heart closest to zone
-    const zone = document.querySelector('.rhythm-zone');
-    const zoneRect = zone.getBoundingClientRect();
-    const zoneCenter = zoneRect.top + zoneRect.height / 2;
-    
-    let closestHeart = null;
-    let closestDist = Infinity;
-    
-    rhythmHearts.forEach(heart => {
-        if (heart.classList.contains('hit')) return;
-        const heartRect = heart.getBoundingClientRect();
-        const heartCenter = heartRect.top + heartRect.height / 2;
-        const dist = Math.abs(heartCenter - zoneCenter);
-        if (dist < closestDist) {
-            closestDist = dist;
-            closestHeart = heart;
-        }
-    });
-    
-    if (closestHeart && closestDist < 80) {
-        closestHeart.classList.add('hit');
-        
-        if (closestDist < 25) {
-            rhythmPerfect++;
-            document.getElementById('rhythm-perfect').textContent = rhythmPerfect;
-            closestHeart.classList.add('perfect');
-        } else {
-            rhythmGood++;
-            document.getElementById('rhythm-good').textContent = rhythmGood;
-            closestHeart.classList.add('good');
-        }
-        
-        setTimeout(() => closestHeart.remove(), 300);
-        rhythmHearts = rhythmHearts.filter(h => h !== closestHeart);
-        
-        if (rhythmPerfect + rhythmGood >= RHYTHM_TARGET) {
-            setTimeout(() => {
-                showMinigameWin(`Your heart beats for me! 💜 Perfect: ${rhythmPerfect}`);
-            }, 500);
-        }
-    }
-}
-
-// ============================================
-// MINIGAME 6: HEART COLLECTOR (Kept)
+// MINIGAME 6: HEART COLLECTOR (Updated Logic)
 // ============================================
 
 let collectorScore = 0;
-const COLLECTOR_TARGET = 20;
 let basketX = 50;
 
 function initHeartCollectorGame() {
@@ -1398,10 +1327,6 @@ function initHeartCollectorGame() {
     };
     
     const interval = setInterval(() => {
-        if (collectorScore >= COLLECTOR_TARGET) {
-            clearInterval(interval);
-            return;
-        }
         spawnCollectorHeart();
     }, 600);
     minigameIntervals.push(interval);
@@ -1417,14 +1342,12 @@ function moveBasket(e, arena) {
 }
 
 function spawnCollectorHeart() {
-    if (collectorScore >= COLLECTOR_TARGET) return;
-    
     const arena = document.getElementById('collector-arena');
     const heart = document.createElement('div');
     heart.className = 'collector-heart';
     
     // Sometimes spawn broken hearts
-    if (Math.random() < 0.2) {
+    if (Math.random() < 0.25) {
         heart.textContent = '💔';
         heart.dataset.bad = 'true';
     } else {
@@ -1436,7 +1359,7 @@ function spawnCollectorHeart() {
     
     // Check collision during fall
     const checkCollision = setInterval(() => {
-        if (!heart.parentNode) {
+        if (!heart.parentNode || currentMinigame !== 'heart-collector') {
             clearInterval(checkCollision);
             return;
         }
@@ -1452,22 +1375,14 @@ function spawnCollectorHeart() {
                 heart.classList.add('caught');
                 
                 if (heart.dataset.bad === 'true') {
-                    collectorScore = Math.max(0, collectorScore - 2);
-                    basket.classList.add('shake');
-                    setTimeout(() => basket.classList.remove('shake'), 300);
+                    // GAME OVER on Broken Heart
+                    gameOverCollector();
                 } else {
                     collectorScore++;
+                    document.getElementById('collector-score').textContent = collectorScore;
                 }
                 
-                document.getElementById('collector-score').textContent = collectorScore;
                 setTimeout(() => heart.remove(), 200);
-                
-                if (collectorScore >= COLLECTOR_TARGET) {
-                    clearAllMinigameIntervals();
-                    setTimeout(() => {
-                        showMinigameWin('You caught all my love! 💝');
-                    }, 500);
-                }
             }
         }
         
@@ -1481,7 +1396,40 @@ function spawnCollectorHeart() {
     // Safety cleanup
     setTimeout(() => {
         clearInterval(checkCollision);
-        heart.remove();
+        if (heart.parentNode) heart.remove();
     }, 4000);
+}
+
+function gameOverCollector() {
+    clearAllMinigameIntervals();
+    showMinigameWin(`Oh no! A broken heart! 💔 Final Score: ${collectorScore}`);
+}
+
+// ============================================
+// VALENTINE GATE LOGIC
+// ============================================
+
+function acceptValentine() {
+    // Show confetti or animation here if desired
+    showMinigamesMenu();
+}
+
+function moveNoButton() {
+    const btn = document.getElementById('btn-no');
+    const container = document.querySelector('.valentine-gate-content');
+    const rect = container.getBoundingClientRect();
+    
+    // Calculate random position within container bounds
+    // Avoid the center where the YES button is roughly located
+    
+    let newX = Math.random() * (rect.width - 100);
+    let newY = Math.random() * (rect.height - 50);
+    
+    // Keep it somewhat visible
+    btn.style.position = 'absolute';
+    btn.style.left = `${newX}px`;
+    btn.style.top = `${newY}px`;
+    
+    // Add "Are you sure?" text maybe? Or just keep moving
 }
 
