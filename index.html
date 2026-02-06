@@ -180,9 +180,17 @@
             <h2>Minigames for You 💜</h2>
             <p class="instruction">Pick a game to play!</p>
             <div class="minigames-grid">
-                <button class="minigame-card" onclick="startMinigame('love-letter')">
-                    <span class="minigame-icon">💕</span>
-                    <span class="minigame-name">Love Letter</span>
+                <button class="minigame-card" onclick="startMinigame('flappy')">
+                    <span class="minigame-icon">🕊️</span>
+                    <span class="minigame-name">Flappy Heart</span>
+                </button>
+                <button class="minigame-card" onclick="startMinigame('snake')">
+                    <span class="minigame-icon">🐍</span>
+                    <span class="minigame-name">Love Snake</span>
+                </button>
+                <button class="minigame-card" onclick="startMinigame('runner')">
+                    <span class="minigame-icon">🏃</span>
+                    <span class="minigame-name">Love Run</span>
                 </button>
                 <button class="minigame-card" onclick="startMinigame('cupid-arrow')">
                     <span class="minigame-icon">💘</span>
@@ -196,36 +204,72 @@
                     <span class="minigame-icon">💝</span>
                     <span class="minigame-name">Heart Collector</span>
                 </button>
-                <button class="minigame-card" onclick="startMinigame('bubble-pop')">
-                    <span class="minigame-icon">🌹</span>
-                    <span class="minigame-name">Bubble Pop</span>
-                </button>
-                <button class="minigame-card" onclick="startMinigame('connect-hearts')">
-                    <span class="minigame-icon">💫</span>
-                    <span class="minigame-name">Connect Hearts</span>
-                </button>
             </div>
             <button class="btn-secondary" onclick="showStage('welcome')">← Back Home</button>
         </div>
     </section>
 
-    <!-- MINIGAME 1: Love Letter Puzzle -->
-    <section id="stage-love-letter" class="stage">
-        <div class="stage-content love-letter-content">
-            <div class="stage-icon">💕</div>
-            <h2>Love Letter Puzzle</h2>
-            <p class="instruction">Arrange the words to form a love message!</p>
-            <div class="love-letter-display" id="love-letter-display">
-                <!-- Answer slots -->
+    <!-- NEW MINIGAME 1: Flappy Heart -->
+    <section id="stage-flappy" class="stage">
+        <div class="stage-content game-content">
+            <div class="stage-icon">🕊️</div>
+            <h2>Flappy Heart</h2>
+            <p class="instruction">Tap to fly through the gates of love!</p>
+            <div class="game-score">
+                Score: <span id="flappy-score">0</span> / 10
             </div>
-            <div class="love-letter-words" id="love-letter-words">
-                <!-- Scrambled words -->
+            <div class="canvas-container">
+                <canvas id="flappy-canvas"></canvas>
+                <div class="game-overlay" id="flappy-start">
+                    <p>Tap to Start</p>
+                </div>
             </div>
             <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
         </div>
     </section>
 
-    <!-- MINIGAME 2: Cupid's Arrow -->
+    <!-- NEW MINIGAME 2: Love Snake -->
+    <section id="stage-snake" class="stage">
+        <div class="stage-content game-content">
+            <div class="stage-icon">🐍</div>
+            <h2>Love Snake</h2>
+            <p class="instruction">Collect hearts to grow your love!</p>
+            <div class="game-score">
+                Score: <span id="snake-score">0</span> / 10
+            </div>
+            <div class="canvas-container">
+                <canvas id="snake-canvas"></canvas>
+                <div class="game-controls">
+                    <button class="d-pad up" onclick="snakeDir(0, -1)">▲</button>
+                    <button class="d-pad left" onclick="snakeDir(-1, 0)">◀</button>
+                    <button class="d-pad right" onclick="snakeDir(1, 0)">▶</button>
+                    <button class="d-pad down" onclick="snakeDir(0, 1)">▼</button>
+                </div>
+            </div>
+            <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
+        </div>
+    </section>
+
+    <!-- NEW MINIGAME 3: Dino Love Run -->
+    <section id="stage-runner" class="stage">
+        <div class="stage-content game-content">
+            <div class="stage-icon">🏃</div>
+            <h2>Love Run</h2>
+            <p class="instruction">Tap to jump over heartbreak!</p>
+            <div class="game-score">
+                Score: <span id="runner-score">0</span> / 500
+            </div>
+            <div class="canvas-container">
+                <canvas id="runner-canvas"></canvas>
+                <div class="game-overlay" id="runner-start">
+                    <p>Tap to Jump</p>
+                </div>
+            </div>
+            <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
+        </div>
+    </section>
+
+    <!-- MINIGAME 4: Cupid's Arrow (Kept) -->
     <section id="stage-cupid-arrow" class="stage">
         <div class="stage-content cupid-arrow-content">
             <div class="stage-icon">💘</div>
@@ -241,7 +285,7 @@
         </div>
     </section>
 
-    <!-- MINIGAME 3: Heartbeat Rhythm -->
+    <!-- MINIGAME 5: Heartbeat Rhythm (Kept) -->
     <section id="stage-heartbeat" class="stage">
         <div class="stage-content heartbeat-content">
             <div class="stage-icon">🎵</div>
@@ -260,7 +304,7 @@
         </div>
     </section>
 
-    <!-- MINIGAME 4: Heart Collector -->
+    <!-- MINIGAME 6: Heart Collector (Kept) -->
     <section id="stage-heart-collector" class="stage">
         <div class="stage-content collector-content">
             <div class="stage-icon">💝</div>
@@ -272,38 +316,6 @@
             <div class="collector-arena" id="collector-arena">
                 <div class="collector-basket" id="collector-basket">🧺</div>
                 <!-- Hearts fall here -->
-            </div>
-            <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
-        </div>
-    </section>
-
-    <!-- MINIGAME 5: Love Bubble Pop -->
-    <section id="stage-bubble-pop" class="stage">
-        <div class="stage-content bubble-content">
-            <div class="stage-icon">🌹</div>
-            <h2>Love Bubble Pop</h2>
-            <p class="instruction">Pop bubbles in order: smallest → largest heart!</p>
-            <div class="bubble-sequence">
-                Next: <span id="bubble-next">💗</span>
-            </div>
-            <div class="bubble-arena" id="bubble-arena">
-                <!-- Bubbles spawn here -->
-            </div>
-            <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
-        </div>
-    </section>
-
-    <!-- MINIGAME 6: Connect Hearts -->
-    <section id="stage-connect-hearts" class="stage">
-        <div class="stage-content connect-content">
-            <div class="stage-icon">💫</div>
-            <h2>Connect Hearts</h2>
-            <p class="instruction">Tap matching hearts to connect them!</p>
-            <div class="connect-score">
-                <span id="connect-score">0</span> / 4 pairs
-            </div>
-            <div class="connect-arena" id="connect-arena">
-                <!-- Heart pairs here -->
             </div>
             <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
         </div>

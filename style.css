@@ -1220,9 +1220,12 @@ h2 {
 }
 
 @keyframes glow-text {
-    0%, 100% {
+
+    0%,
+    100% {
         text-shadow: 0 0 10px rgba(233, 30, 140, 0.5);
     }
+
     50% {
         text-shadow: 0 0 20px rgba(233, 30, 140, 0.8), 0 0 30px rgba(155, 89, 182, 0.5);
     }
@@ -1268,7 +1271,8 @@ h2 {
     color: white;
 }
 
-.minigame-card:hover, .minigame-card:active {
+.minigame-card:hover,
+.minigame-card:active {
     background: linear-gradient(135deg, rgba(155, 89, 182, 0.4), rgba(233, 30, 140, 0.3));
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4);
@@ -1321,74 +1325,139 @@ h2 {
 }
 
 /* ============================================
-   MINIGAME 1: LOVE LETTER
+   MINIGAMES GENERAL
    ============================================ */
 
-.love-letter-content {
-    max-width: 380px;
+.game-content {
+    max-width: 480px;
+    width: 95%;
 }
 
-.love-letter-display {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    min-height: 50px;
-}
-
-.letter-slot {
-    min-width: 50px;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px dashed var(--glass-border);
-    border-radius: 10px;
-    font-size: 1rem;
+.game-score {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: var(--primary-light);
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
 }
 
-.letter-slot.filled {
-    background: rgba(155, 89, 182, 0.3);
-    border-style: solid;
-    border-color: var(--primary-light);
+.canvas-container {
+    position: relative;
+    width: 100%;
+    margin: 0 auto 20px;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.2);
 }
 
-.love-letter-words {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
+canvas {
+    display: block;
+    width: 100%;
+    /* Aspect ratio managed by JS but max height controlled here */
+    max-height: 400px;
 }
 
-.letter-word {
-    padding: 10px 18px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    border: none;
-    border-radius: 25px;
+.game-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 15px 30px;
+    border-radius: 20px;
     color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: 'Poppins', sans-serif;
-}
-
-.letter-word:hover {
-    transform: scale(1.05);
-}
-
-.letter-word.used {
-    opacity: 0.3;
+    font-size: 1.5rem;
+    font-weight: 700;
     pointer-events: none;
+    animation: pulse 1.5s infinite;
+}
+
+.game-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: grid;
+    grid-template-areas:
+        ". up ."
+        "left down right";
+    gap: 8px;
+    opacity: 0.7;
+}
+
+@media (min-width: 768px) {
+    .game-controls {
+        display: none;
+        /* Hide touch controls on desktop */
+    }
+}
+
+.d-pad {
+    width: 45px;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    color: white;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+}
+
+.d-pad:active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.d-pad.up {
+    grid-area: up;
+}
+
+.d-pad.down {
+    grid-area: down;
+}
+
+.d-pad.left {
+    grid-area: left;
+}
+
+.d-pad.right {
+    grid-area: right;
 }
 
 /* ============================================
-   MINIGAME 2: CUPID'S ARROW
+   MINIGAME 1: FLAPPY HEART
    ============================================ */
 
+#stage-flappy .canvas-container {
+    background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
+    border: 2px solid #4fc3f7;
+}
+
+/* ============================================
+   MINIGAME 2: LOVE SNAKE
+   ============================================ */
+
+#stage-snake .canvas-container {
+    background: #2c2c2c;
+    border: 2px solid #4CAF50;
+}
+
+/* ============================================
+   MINIGAME 3: DINO LOVE RUN
+   ============================================ */
+
+#stage-runner .canvas-container {
+    background: #f0f0f0;
+    border: 2px solid #ffa726;
+}
+
+/* ============================================
+   KEPT MINIGAMES (Cupid, Heartbeat, Collector)
+   ============================================ */
+
+/* Cupid's Arrow */
 .cupid-arrow-content {
     max-width: 380px;
 }
@@ -1435,25 +1504,16 @@ h2 {
 }
 
 @keyframes cupid-float {
-    0% { transform: translate(0, 0) rotate(0deg); }
-    100% { transform: translate(20px, -20px) rotate(10deg); }
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(20px, -20px) rotate(10deg);
+    }
 }
 
-@keyframes heart-explode {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.5); }
-    100% { transform: scale(0); opacity: 0; }
-}
-
-@keyframes fade-out {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-/* ============================================
-   MINIGAME 3: HEARTBEAT RHYTHM
-   ============================================ */
-
+/* Heartbeat Rhythm */
 .heartbeat-content {
     max-width: 380px;
 }
@@ -1529,8 +1589,13 @@ h2 {
 }
 
 @keyframes rhythm-fall {
-    0% { top: -40px; }
-    100% { top: calc(100% + 40px); }
+    0% {
+        top: -40px;
+    }
+
+    100% {
+        top: calc(100% + 40px);
+    }
 }
 
 .rhythm-tap-area {
@@ -1550,10 +1615,7 @@ h2 {
     transform: scale(0.95);
 }
 
-/* ============================================
-   MINIGAME 4: HEART COLLECTOR
-   ============================================ */
-
+/* Heart Collector */
 .collector-content {
     max-width: 380px;
 }
@@ -1605,166 +1667,46 @@ h2 {
 }
 
 @keyframes collector-fall {
-    0% { top: -40px; }
-    100% { top: calc(100% + 40px); }
+    0% {
+        top: -40px;
+    }
+
+    100% {
+        top: calc(100% + 40px);
+    }
 }
 
-/* ============================================
-   MINIGAME 5: BUBBLE POP
-   ============================================ */
+/* Shared Animations */
+@keyframes heart-explode {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
 
-.bubble-content {
-    max-width: 380px;
+    50% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
 }
 
-.bubble-sequence {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    margin-bottom: 15px;
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
-#bubble-next {
-    font-size: 1.5rem;
-}
-
-.bubble-arena {
-    position: relative;
-    height: 250px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    overflow: hidden;
-    margin-bottom: 15px;
-}
-
-.bubble {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(155, 89, 182, 0.3));
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.8rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    animation: bubble-float 3s ease-in-out infinite;
-}
-
-.bubble:hover {
-    transform: scale(1.1);
-}
-
-.bubble.popped {
-    animation: bubble-pop 0.3s ease-out forwards !important;
-}
-
-.bubble.wrong {
-    animation: shake 0.3s ease-in-out;
-}
-
-@keyframes bubble-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-@keyframes bubble-pop {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(0); opacity: 0; }
-}
-
-/* ============================================
-   MINIGAME 6: CONNECT HEARTS
-   ============================================ */
-
-.connect-content {
-    max-width: 380px;
-}
-
-.connect-score {
-    font-size: 1.1rem;
-    color: var(--primary-light);
-    margin-bottom: 15px;
-}
-
-#connect-score {
-    font-size: 1.3rem;
-    color: var(--accent-light);
-    font-weight: 600;
-}
-
-.connect-arena {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 15px;
-}
-
-.connect-heart {
-    aspect-ratio: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid transparent;
-    border-radius: 15px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.connect-heart:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.connect-heart.selected {
-    border-color: var(--accent-light);
-    background: rgba(233, 30, 140, 0.2);
-    animation: pulse-border 1s ease-in-out infinite;
-}
-
-.connect-heart.matched {
-    background: rgba(107, 255, 138, 0.2);
-    border-color: #6bff8a;
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.connect-heart.wrong {
-    animation: shake 0.3s ease-in-out;
-    background: rgba(255, 100, 100, 0.2);
-}
-
-@keyframes pulse-border {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(233, 30, 140, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(233, 30, 140, 0); }
-}
-
-/* Responsive for minigames */
+/* Responsive Adjustments */
 @media (max-width: 380px) {
-    .minigames-grid {
-        gap: 8px;
-    }
-    
-    .minigame-card {
-        padding: 14px 10px;
-    }
-    
-    .minigame-icon {
-        font-size: 1.6rem;
-    }
-    
-    .minigame-name {
-        font-size: 0.75rem;
-    }
-    
-    .connect-arena {
-        gap: 8px;
-    }
-    
-    .connect-heart {
-        font-size: 1.5rem;
+    .game-content {
+        width: 100%;
+        padding: 0 10px;
     }
 }
