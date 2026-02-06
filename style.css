@@ -1604,36 +1604,71 @@ canvas {
     }
 }
 
+/* Shared Animations */
+@keyframes heart-explode {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
 /* ============================================
    VALENTINE GATE
    ============================================ */
 
 .valentine-gate-content {
-    max-width: 480px;
+    max-width: 450px;
     width: 90%;
     text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 50px 30px;
+    border-radius: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .gate-icon {
-    font-size: 5rem;
-    margin-bottom: 20px;
-    animation: pulse 1.5s infinite;
+    font-size: 4rem;
+    margin-bottom: 25px;
+    filter: drop-shadow(0 0 10px rgba(233, 30, 99, 0.5));
 }
 
 .gate-text {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: var(--text-muted);
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .gate-question {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 800;
-    margin-bottom: 40px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: glow-text 2s ease-in-out infinite;
+    margin-bottom: 50px;
+    line-height: 1.4;
+    color: white;
 }
 
 .gate-buttons {
@@ -1641,36 +1676,44 @@ canvas {
     justify-content: center;
     gap: 20px;
     position: relative;
-    min-height: 80px;
+    height: 70px;
+    /* Fixed height container */
+    align-items: center;
 }
 
 .btn-yes {
-    background: linear-gradient(135deg, #43e97b, #38f9d7);
-    color: #1a1a1a;
+    background: #e91e63;
+    color: white;
     border: none;
-    padding: 15px 40px;
-    border-radius: 30px;
-    font-size: 1.5rem;
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-size: 1.2rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
-    transition: transform 0.2s ease;
+    box-shadow: 0 5px 20px rgba(233, 30, 99, 0.5);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
 }
 
 .btn-yes:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
+}
+
+.btn-yes:active {
+    transform: scale(0.95);
 }
 
 .btn-no {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-muted);
-    border: 2px solid var(--text-muted);
-    padding: 15px 30px;
-    border-radius: 30px;
-    font-size: 1.2rem;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-size: 1rem;
     cursor: pointer;
     position: absolute;
-    transition: all 0.2s ease;
+    /* Allows it to float away */
+    transition: all 0.3s ease;
 }
 
 /* Shared Animations */

@@ -1025,7 +1025,7 @@ function loopSnakeGame(timestamp) {
 function spawnSnakeFood() {
     const maxX = snakeState.canvas.width / GRID;
     const maxY = snakeState.canvas.height / GRID;
-    const icons = ['🍎', '🍓', '🍒', '🎁', '💝'];
+    const icons = ['💌', '💝', '🌹', '🧸', '💍'];
     snakeState.food = {
         x: Math.floor(Math.random() * maxX),
         y: Math.floor(Math.random() * maxY),
@@ -1097,12 +1097,24 @@ function drawSnakeGame() {
             ctx.arc(s.x * GRID + 7, s.y * GRID + 7, 2, 0, Math.PI * 2);
             ctx.arc(s.x * GRID + 13, s.y * GRID + 7, 2, 0, Math.PI * 2);
             ctx.fill();
+            // Smile
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(s.x * GRID + 10, s.y * GRID + 12, 3, 0, Math.PI, false);
+            ctx.stroke();
         } else {
-            ctx.fillStyle = `rgba(255, 64, 129, ${1 - i/snakeState.snake.length})`;
-            ctx.fillRect(s.x * GRID + 2, s.y * GRID + 2, 16, 16);
+            // HEART BODY SEGMENTS!
+            ctx.fillStyle = `rgba(255, 64, 129, ${0.9 - (i/snakeState.snake.length)*0.5})`;
+            // Draw a simplified heart shape or just use text heart to be cute?
+            // Let's draw circles for cleaner look but brighter color
+            ctx.beginPath();
+            ctx.arc(s.x * GRID + 10, s.y * GRID + 10, 8, 0, Math.PI * 2);
+            ctx.fill();
         }
     });
 }
+
 
 // ============================================
 // MINIGAME 3: DINO LOVE RUN (Endless & New Icon)
