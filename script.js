@@ -722,3 +722,588 @@ function createFloatingHeart(container) {
 
     setTimeout(() => heart.remove(), 5000);
 }
+
+// ============================================
+// MINIGAMES SECTION
+// ============================================
+
+let currentMinigame = null;
+let minigameIntervals = [];
+
+function showMinigamesMenu() {
+    showStage('minigames-menu');
+}
+
+function startMinigame(game) {
+    currentMinigame = game;
+    clearAllMinigameIntervals();
+    
+    switch(game) {
+        case 'love-letter':
+            initLoveLetterGame();
+            showStage('love-letter');
+            break;
+        case 'cupid-arrow':
+            initCupidArrowGame();
+            showStage('cupid-arrow');
+            break;
+        case 'heartbeat':
+            initHeartbeatGame();
+            showStage('heartbeat');
+            break;
+        case 'heart-collector':
+            initHeartCollectorGame();
+            showStage('heart-collector');
+            break;
+        case 'bubble-pop':
+            initBubblePopGame();
+            showStage('bubble-pop');
+            break;
+        case 'connect-hearts':
+            initConnectHeartsGame();
+            showStage('connect-hearts');
+            break;
+    }
+}
+
+function backToMinigames() {
+    clearAllMinigameIntervals();
+    showStage('minigames-menu');
+}
+
+function clearAllMinigameIntervals() {
+    minigameIntervals.forEach(interval => clearInterval(interval));
+    minigameIntervals = [];
+}
+
+function showMinigameWin(message) {
+    const winOverlay = document.getElementById('minigame-win');
+    const winMessage = document.getElementById('minigame-win-message');
+    winMessage.textContent = message || 'Amazing job, love! 💜';
+    winOverlay.classList.remove('hidden');
+}
+
+function hideMinigameWin() {
+    document.getElementById('minigame-win').classList.add('hidden');
+    backToMinigames();
+}
+
+// ============================================
+// MINIGAME 1: LOVE LETTER PUZZLE
+// ============================================
+
+const LOVE_MESSAGE = ['I', 'love', 'you', 'more', 'each', 'day'];
+let selectedWords = [];
+
+function initLoveLetterGame() {
+    const display = document.getElementById('love-letter-display');
+    const wordsContainer = document.getElementById('love-letter-words');
+    display.innerHTML = '';
+    wordsContainer.innerHTML = '';
+    selectedWords = [];
+    
+    // Create empty slots
+    LOVE_MESSAGE.forEach((_, i) => {
+        const slot = document.createElement('div');
+        slot.className = 'letter-slot';
+        slot.dataset.index = i;
+        slot.addEventListener('click', () => removeWord(i));
+        display.appendChild(slot);
+    });
+    
+    // Create shuffled words
+    const shuffled = [...LOVE_MESSAGE].sort(() => Math.random() - 0.5);
+    shuffled.forEach(word => {
+        const wordEl = document.createElement('button');
+        wordEl.className = 'letter-word';
+        wordEl.textContent = word;
+        wordEl.dataset.word = word;
+        wordEl.addEventListener('click', () => selectWord(word, wordEl));
+        wordsContainer.appendChild(wordEl);
+    });
+}
+
+function selectWord(word, element) {
+    if (element.classList.contains('used')) return;
+    if (selectedWords.length >= LOVE_MESSAGE.length) return;
+    
+    element.classList.add('used');
+    selectedWords.push({ word, element });
+    
+    const slots = document.querySelectorAll('.letter-slot');
+    const currentSlot = slots[selectedWords.length - 1];
+    currentSlot.textContent = word;
+    currentSlot.classList.add('filled');
+    
+    checkLoveLetterComplete();
+}
+
+function removeWord(index) {
+    if (index >= selectedWords.length) return;
+    
+    const removedWords = selectedWords.splice(index);
+    removedWords.forEach(item => {
+        item.element.classList.remove('used');
+    });
+    
+    updateLoveLetterDisplay();
+}
+
+function updateLoveLetterDisplay() {
+    const slots = document.querySelectorAll('.letter-slot');
+    slots.forEach((slot, i) => {
+        if (i < selectedWords.length) {
+            slot.textContent = selectedWords[i].word;
+            slot.classList.add('filled');
+        } else {
+            slot.textContent = '';
+            slot.classList.remove('filled');
+        }
+    });
+}
+
+function checkLoveLetterComplete() {
+    if (selectedWords.length !== LOVE_MESSAGE.length) return;
+    
+    const isCorrect = selectedWords.every((item, i) => item.word === LOVE_MESSAGE[i]);
+    if (isCorrect) {
+        setTimeout(() => {
+            showMinigameWin('You spelled out my love! 💕');
+        }, 500);
+    }
+}
+
+// ============================================
+// MINIGAME 2: CUPID'S ARROW
+// ============================================
+
+let cupidScore = 0;
+const CUPID_TARGET = 10;
+
+function initCupidArrowGame() {
+    cupidScore = 0;
+    document.getElementById('cupid-score').textContent = '0';
+    const arena = document.getElementById('cupid-arena');
+    arena.innerHTML = '';
+    
+    const interval = setInterval(() => {
+        if (cupidScore >= CUPID_TARGET) {
+            clearInterval(interval);
+            return;
+        }
+        spawnCupidHeart();
+    }, 800);
+    minigameIntervals.push(interval);
+}
+
+function spawnCupidHeart() {
+    if (cupidScore >= CUPID_TARGET) return;
+    
+    const arena = document.getElementById('cupid-arena');
+    const heart = document.createElement('div');
+    heart.className = 'cupid-heart';
+    heart.textContent = ['💕', '💗', '💖', '💘'][Math.floor(Math.random() * 4)];
+    
+    // Random position
+    const maxX = arena.clientWidth - 50;
+    const maxY = arena.clientHeight - 50;
+    heart.style.left = `${Math.random() * maxX}px`;
+    heart.style.top = `${Math.random() * maxY}px`;
+    
+    // Moving animation
+    heart.style.animation = `cupid-float ${2 + Math.random()}s ease-in-out infinite alternate`;
+    
+    const hitHeart = (e) => {
+        e.preventDefault();
+        if (heart.classList.contains('hit')) return;
+        
+        heart.classList.add('hit');
+        cupidScore++;
+        document.getElementById('cupid-score').textContent = cupidScore;
+        
+        setTimeout(() => heart.remove(), 300);
+        
+        if (cupidScore >= CUPID_TARGET) {
+            clearAllMinigameIntervals();
+            setTimeout(() => {
+                showMinigameWin('Cupid would be proud! 💘');
+            }, 500);
+        }
+    };
+    
+    heart.addEventListener('click', hitHeart);
+    heart.addEventListener('touchstart', hitHeart);
+    
+    arena.appendChild(heart);
+    
+    // Remove after time if not hit
+    setTimeout(() => {
+        if (!heart.classList.contains('hit') && heart.parentNode) {
+            heart.classList.add('escaped');
+            setTimeout(() => heart.remove(), 300);
+        }
+    }, 3000);
+}
+
+// ============================================
+// MINIGAME 3: HEARTBEAT RHYTHM
+// ============================================
+
+let rhythmPerfect = 0;
+let rhythmGood = 0;
+let rhythmHearts = [];
+const RHYTHM_TARGET = 8;
+
+function initHeartbeatGame() {
+    rhythmPerfect = 0;
+    rhythmGood = 0;
+    rhythmHearts = [];
+    document.getElementById('rhythm-perfect').textContent = '0';
+    document.getElementById('rhythm-good').textContent = '0';
+    
+    const track = document.getElementById('rhythm-track');
+    const existingHearts = track.querySelectorAll('.rhythm-heart');
+    existingHearts.forEach(h => h.remove());
+    
+    let heartsSpawned = 0;
+    const interval = setInterval(() => {
+        if (heartsSpawned >= RHYTHM_TARGET) {
+            clearInterval(interval);
+            return;
+        }
+        spawnRhythmHeart();
+        heartsSpawned++;
+    }, 1200);
+    minigameIntervals.push(interval);
+    
+    const tapArea = document.getElementById('rhythm-tap-area');
+    tapArea.onclick = null;
+    tapArea.ontouchstart = null;
+    tapArea.addEventListener('click', handleRhythmTap);
+    tapArea.addEventListener('touchstart', handleRhythmTap);
+}
+
+function spawnRhythmHeart() {
+    const track = document.getElementById('rhythm-track');
+    const heart = document.createElement('div');
+    heart.className = 'rhythm-heart';
+    heart.textContent = '💜';
+    heart.dataset.spawned = Date.now();
+    
+    track.appendChild(heart);
+    rhythmHearts.push(heart);
+    
+    // Remove after animation
+    setTimeout(() => {
+        if (heart.parentNode && !heart.classList.contains('hit')) {
+            heart.remove();
+            rhythmHearts = rhythmHearts.filter(h => h !== heart);
+        }
+    }, 2500);
+}
+
+function handleRhythmTap(e) {
+    e.preventDefault();
+    
+    const tapArea = document.getElementById('rhythm-tap-area');
+    tapArea.classList.add('tapped');
+    setTimeout(() => tapArea.classList.remove('tapped'), 100);
+    
+    // Find heart closest to zone
+    const zone = document.querySelector('.rhythm-zone');
+    const zoneRect = zone.getBoundingClientRect();
+    const zoneCenter = zoneRect.top + zoneRect.height / 2;
+    
+    let closestHeart = null;
+    let closestDist = Infinity;
+    
+    rhythmHearts.forEach(heart => {
+        if (heart.classList.contains('hit')) return;
+        const heartRect = heart.getBoundingClientRect();
+        const heartCenter = heartRect.top + heartRect.height / 2;
+        const dist = Math.abs(heartCenter - zoneCenter);
+        if (dist < closestDist) {
+            closestDist = dist;
+            closestHeart = heart;
+        }
+    });
+    
+    if (closestHeart && closestDist < 80) {
+        closestHeart.classList.add('hit');
+        
+        if (closestDist < 25) {
+            rhythmPerfect++;
+            document.getElementById('rhythm-perfect').textContent = rhythmPerfect;
+            closestHeart.classList.add('perfect');
+        } else {
+            rhythmGood++;
+            document.getElementById('rhythm-good').textContent = rhythmGood;
+            closestHeart.classList.add('good');
+        }
+        
+        setTimeout(() => closestHeart.remove(), 300);
+        rhythmHearts = rhythmHearts.filter(h => h !== closestHeart);
+        
+        if (rhythmPerfect + rhythmGood >= RHYTHM_TARGET) {
+            setTimeout(() => {
+                showMinigameWin(`Your heart beats for me! 💜 Perfect: ${rhythmPerfect}`);
+            }, 500);
+        }
+    }
+}
+
+// ============================================
+// MINIGAME 4: HEART COLLECTOR
+// ============================================
+
+let collectorScore = 0;
+const COLLECTOR_TARGET = 20;
+let basketX = 50;
+
+function initHeartCollectorGame() {
+    collectorScore = 0;
+    basketX = 50;
+    document.getElementById('collector-score').textContent = '0';
+    
+    const arena = document.getElementById('collector-arena');
+    const existingHearts = arena.querySelectorAll('.collector-heart');
+    existingHearts.forEach(h => h.remove());
+    
+    const basket = document.getElementById('collector-basket');
+    basket.style.left = '50%';
+    
+    // Mouse/touch controls
+    arena.onmousemove = (e) => moveBasket(e, arena);
+    arena.ontouchmove = (e) => {
+        e.preventDefault();
+        moveBasket(e.touches[0], arena);
+    };
+    
+    const interval = setInterval(() => {
+        if (collectorScore >= COLLECTOR_TARGET) {
+            clearInterval(interval);
+            return;
+        }
+        spawnCollectorHeart();
+    }, 600);
+    minigameIntervals.push(interval);
+}
+
+function moveBasket(e, arena) {
+    const rect = arena.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    basketX = Math.max(30, Math.min(x, rect.width - 30));
+    
+    const basket = document.getElementById('collector-basket');
+    basket.style.left = `${basketX}px`;
+}
+
+function spawnCollectorHeart() {
+    if (collectorScore >= COLLECTOR_TARGET) return;
+    
+    const arena = document.getElementById('collector-arena');
+    const heart = document.createElement('div');
+    heart.className = 'collector-heart';
+    
+    // Sometimes spawn broken hearts
+    if (Math.random() < 0.2) {
+        heart.textContent = '💔';
+        heart.dataset.bad = 'true';
+    } else {
+        heart.textContent = ['💕', '💗', '💖', '💜'][Math.floor(Math.random() * 4)];
+    }
+    
+    heart.style.left = `${20 + Math.random() * (arena.clientWidth - 60)}px`;
+    arena.appendChild(heart);
+    
+    // Check collision during fall
+    const checkCollision = setInterval(() => {
+        if (!heart.parentNode) {
+            clearInterval(checkCollision);
+            return;
+        }
+        
+        const heartRect = heart.getBoundingClientRect();
+        const basket = document.getElementById('collector-basket');
+        const basketRect = basket.getBoundingClientRect();
+        
+        // Check if heart reached basket level
+        if (heartRect.bottom >= basketRect.top && heartRect.top <= basketRect.bottom) {
+            if (heartRect.left < basketRect.right && heartRect.right > basketRect.left) {
+                clearInterval(checkCollision);
+                heart.classList.add('caught');
+                
+                if (heart.dataset.bad === 'true') {
+                    collectorScore = Math.max(0, collectorScore - 2);
+                    basket.classList.add('shake');
+                    setTimeout(() => basket.classList.remove('shake'), 300);
+                } else {
+                    collectorScore++;
+                }
+                
+                document.getElementById('collector-score').textContent = collectorScore;
+                setTimeout(() => heart.remove(), 200);
+                
+                if (collectorScore >= COLLECTOR_TARGET) {
+                    clearAllMinigameIntervals();
+                    setTimeout(() => {
+                        showMinigameWin('You caught all my love! 💝');
+                    }, 500);
+                }
+            }
+        }
+        
+        // Heart fell off screen
+        if (heartRect.top > arena.getBoundingClientRect().bottom) {
+            clearInterval(checkCollision);
+            heart.remove();
+        }
+    }, 50);
+    
+    // Safety cleanup
+    setTimeout(() => {
+        clearInterval(checkCollision);
+        heart.remove();
+    }, 4000);
+}
+
+// ============================================
+// MINIGAME 5: LOVE BUBBLE POP
+// ============================================
+
+const BUBBLE_SEQUENCE = ['💗', '💕', '💖', '💜', '💝'];
+let bubbleIndex = 0;
+
+function initBubblePopGame() {
+    bubbleIndex = 0;
+    document.getElementById('bubble-next').textContent = BUBBLE_SEQUENCE[0];
+    
+    const arena = document.getElementById('bubble-arena');
+    arena.innerHTML = '';
+    
+    // Create bubbles with all heart types
+    const shuffled = [...BUBBLE_SEQUENCE].sort(() => Math.random() - 0.5);
+    shuffled.forEach((heart, i) => {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = heart;
+        bubble.dataset.heart = heart;
+        
+        // Random position
+        const angle = (i / BUBBLE_SEQUENCE.length) * Math.PI * 2;
+        const radius = 60 + Math.random() * 40;
+        const centerX = arena.clientWidth / 2;
+        const centerY = arena.clientHeight / 2;
+        
+        bubble.style.left = `${centerX + Math.cos(angle) * radius - 30}px`;
+        bubble.style.top = `${centerY + Math.sin(angle) * radius - 30}px`;
+        
+        bubble.addEventListener('click', () => popBubble(bubble, heart));
+        bubble.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            popBubble(bubble, heart);
+        });
+        
+        arena.appendChild(bubble);
+    });
+}
+
+function popBubble(bubble, heart) {
+    if (bubble.classList.contains('popped')) return;
+    
+    if (heart === BUBBLE_SEQUENCE[bubbleIndex]) {
+        bubble.classList.add('popped');
+        bubbleIndex++;
+        
+        if (bubbleIndex < BUBBLE_SEQUENCE.length) {
+            document.getElementById('bubble-next').textContent = BUBBLE_SEQUENCE[bubbleIndex];
+        }
+        
+        if (bubbleIndex >= BUBBLE_SEQUENCE.length) {
+            setTimeout(() => {
+                showMinigameWin('All bubbles popped perfectly! 🌹');
+            }, 500);
+        }
+    } else {
+        bubble.classList.add('wrong');
+        setTimeout(() => bubble.classList.remove('wrong'), 300);
+    }
+}
+
+// ============================================
+// MINIGAME 6: CONNECT HEARTS
+// ============================================
+
+const HEART_PAIRS = ['❤️', '🧡', '💛', '💚'];
+let connectScore = 0;
+let selectedHeart = null;
+
+function initConnectHeartsGame() {
+    connectScore = 0;
+    selectedHeart = null;
+    document.getElementById('connect-score').textContent = '0';
+    
+    const arena = document.getElementById('connect-arena');
+    arena.innerHTML = '';
+    
+    // Create pairs (each heart appears twice)
+    const allHearts = [...HEART_PAIRS, ...HEART_PAIRS];
+    allHearts.sort(() => Math.random() - 0.5);
+    
+    allHearts.forEach((heart, i) => {
+        const heartEl = document.createElement('div');
+        heartEl.className = 'connect-heart';
+        heartEl.textContent = heart;
+        heartEl.dataset.heart = heart;
+        heartEl.dataset.index = i;
+        
+        heartEl.addEventListener('click', () => selectConnectHeart(heartEl, heart));
+        heartEl.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            selectConnectHeart(heartEl, heart);
+        });
+        
+        arena.appendChild(heartEl);
+    });
+}
+
+function selectConnectHeart(element, heart) {
+    if (element.classList.contains('matched')) return;
+    
+    if (!selectedHeart) {
+        // First selection
+        selectedHeart = { element, heart };
+        element.classList.add('selected');
+    } else if (selectedHeart.element === element) {
+        // Deselect
+        element.classList.remove('selected');
+        selectedHeart = null;
+    } else if (selectedHeart.heart === heart) {
+        // Match!
+        selectedHeart.element.classList.remove('selected');
+        selectedHeart.element.classList.add('matched');
+        element.classList.add('matched');
+        
+        connectScore++;
+        document.getElementById('connect-score').textContent = connectScore;
+        selectedHeart = null;
+        
+        if (connectScore >= HEART_PAIRS.length) {
+            setTimeout(() => {
+                showMinigameWin('All hearts connected! 💫');
+            }, 500);
+        }
+    } else {
+        // No match
+        selectedHeart.element.classList.add('wrong');
+        element.classList.add('wrong');
+        
+        const prevSelected = selectedHeart.element;
+        setTimeout(() => {
+            prevSelected.classList.remove('selected', 'wrong');
+            element.classList.remove('wrong');
+        }, 400);
+        
+        selectedHeart = null;
+    }
+}
