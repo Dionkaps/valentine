@@ -42,7 +42,7 @@ function updateProgress() {
     const progressFill = document.getElementById('progress-fill');
     const progressText = document.getElementById('progress-text');
 
-    if (currentStageIndex === 0) {
+    if (currentStageIndex <= 0) {
         progressContainer.classList.remove('visible');
     } else {
         progressContainer.classList.add('visible');
@@ -762,11 +762,16 @@ function startMinigame(game) {
             initHeartCollectorGame();
             showStage('heart-collector');
             break;
+        case 'match3':
+            initMatch3Game();
+            showStage('match3');
+            break;
     }
 }
 
 function backToMinigames() {
     clearAllMinigameIntervals();
+    currentMinigame = null;
     showStage('minigames-menu');
 }
 
@@ -776,6 +781,10 @@ function clearAllMinigameIntervals() {
     if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
         gameLoopId = null;
+    }
+    if (typeof match3State !== 'undefined') {
+        match3State.active = false;
+        match3State.busy = false;
     }
 }
 
@@ -1415,6 +1424,405 @@ function spawnCollectorHeart() {
 function gameOverCollector() {
     clearAllMinigameIntervals();
     showMinigameWin(`Oh no! A broken heart! 💔 Final Score: ${collectorScore}`);
+}
+
+// ============================================
+// MINIGAME 7: LOVE MATCH-3 (Moves + Combos)
+// ============================================
+
+const MATCH3_SIZE = 8;
+const MATCH3_TILE_TYPES = ['💖', '🌹', '💍', '🍫', '🧸', '✨'];
+const MATCH3_INITIAL_MOVES = 24;
+const MATCH3_TARGET_SCORE = 1600;
+
+let match3State = {
+    board: [],
+    score: 0,
+    moves: MATCH3_INITIAL_MOVES,
+    selected: null,
+    active: false,
+    busy: false,
+    session: 0
+};
+
+function initMatch3Game() {
+    match3State.session += 1;
+    match3State.score = 0;
+    match3State.moves = MATCH3_INITIAL_MOVES;
+    match3State.selected = null;
+    match3State.active = true;
+    match3State.busy = false;
+    match3State.board = createMatch3Board();
+
+    // Ensure the board starts with at least one possible move.
+    let attempts = 0;
+    while (!hasAnyValidMatch3Move() && attempts < 40) {
+        match3State.board = createMatch3Board();
+        attempts++;
+    }
+    if (!hasAnyValidMatch3Move()) {
+        reshuffleMatch3Board();
+    }
+
+    const boardEl = document.getElementById('match3-board');
+    if (!boardEl) return;
+    boardEl.onclick = handleMatch3BoardClick;
+
+    updateMatch3Hud();
+    renderMatch3Board();
+    setMatch3Message('Match 3+ tiles to build romantic combos.', true);
+}
+
+function handleMatch3BoardClick(event) {
+    if (!match3State.active || match3State.busy || currentMinigame !== 'match3') return;
+
+    const cell = event.target.closest('.match3-cell');
+    if (!cell) return;
+
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    const chosen = { row, col };
+
+    if (!match3State.selected) {
+        match3State.selected = chosen;
+        renderMatch3Board();
+        return;
+    }
+
+    const first = match3State.selected;
+
+    // Tap same tile again to deselect.
+    if (first.row === chosen.row && first.col === chosen.col) {
+        match3State.selected = null;
+        renderMatch3Board();
+        return;
+    }
+
+    if (!isAdjacentMatch3(first, chosen)) {
+        match3State.selected = chosen;
+        renderMatch3Board();
+        setMatch3Message('Pick a neighboring tile to swap.');
+        return;
+    }
+
+    match3State.selected = null;
+    renderMatch3Board();
+    tryMatch3Swap(first, chosen, match3State.session);
+}
+
+function isAdjacentMatch3(a, b) {
+    return Math.abs(a.row - b.row) + Math.abs(a.col - b.col) === 1;
+}
+
+async function tryMatch3Swap(first, second, sessionId) {
+    if (!isMatch3SessionAlive(sessionId)) return;
+
+    match3State.busy = true;
+    swapMatch3Tiles(first, second);
+    renderMatch3Board();
+
+    await match3Delay(120);
+    if (!isMatch3SessionAlive(sessionId)) return;
+
+    let matches = findAllMatch3Matches();
+    if (!matches.length) {
+        swapMatch3Tiles(first, second);
+        renderMatch3Board();
+        match3State.busy = false;
+        setMatch3Message('That swap made no match. Try a different pair.');
+        return;
+    }
+
+    match3State.moves = Math.max(0, match3State.moves - 1);
+    updateMatch3Hud();
+
+    await resolveMatch3Cascade(matches, sessionId);
+    if (!isMatch3SessionAlive(sessionId)) return;
+
+    checkMatch3End();
+    match3State.busy = false;
+}
+
+async function resolveMatch3Cascade(initialMatches, sessionId) {
+    let combo = 1;
+    let matches = initialMatches;
+
+    while (matches.length) {
+        if (!isMatch3SessionAlive(sessionId)) return;
+
+        const matchSet = new Set(matches.map(({ row, col }) => match3Key(row, col)));
+        const gained = matches.length * 40 * combo;
+        match3State.score += gained;
+        updateMatch3Hud();
+        setMatch3Message(combo > 1 ? `Combo x${combo}! +${gained}` : `Sweet match! +${gained}`, true);
+
+        renderMatch3Board(matchSet);
+        await match3Delay(170);
+        if (!isMatch3SessionAlive(sessionId)) return;
+
+        removeMatch3Tiles(matchSet);
+        collapseMatch3Board();
+        refillMatch3Board();
+
+        renderMatch3Board();
+        await match3Delay(120);
+        if (!isMatch3SessionAlive(sessionId)) return;
+
+        matches = findAllMatch3Matches();
+        combo++;
+    }
+
+    if (!hasAnyValidMatch3Move()) {
+        reshuffleMatch3Board();
+        renderMatch3Board();
+        setMatch3Message('No moves left. Fresh shuffle!');
+    }
+}
+
+function checkMatch3End() {
+    if (match3State.score >= MATCH3_TARGET_SCORE) {
+        match3State.active = false;
+        setMatch3Message('Perfect date planned! You win.', true);
+        setTimeout(() => {
+            const stage = document.getElementById('stage-match3');
+            if (currentMinigame === 'match3' && stage && stage.classList.contains('active')) {
+                showMinigameWin('Perfect date unlocked! You crushed Love Match-3. 💖');
+            }
+        }, 250);
+        return true;
+    }
+
+    if (match3State.moves <= 0) {
+        match3State.active = false;
+        setMatch3Message('Out of moves. Tap Restart for another try.');
+        return true;
+    }
+
+    return false;
+}
+
+function createMatch3Board() {
+    const board = Array.from({ length: MATCH3_SIZE }, () => Array(MATCH3_SIZE).fill(null));
+
+    for (let row = 0; row < MATCH3_SIZE; row++) {
+        for (let col = 0; col < MATCH3_SIZE; col++) {
+            let tile = randomMatch3Tile();
+
+            while (
+                (col >= 2 && board[row][col - 1] === tile && board[row][col - 2] === tile) ||
+                (row >= 2 && board[row - 1][col] === tile && board[row - 2][col] === tile)
+            ) {
+                tile = randomMatch3Tile();
+            }
+
+            board[row][col] = tile;
+        }
+    }
+
+    return board;
+}
+
+function randomMatch3Tile() {
+    return MATCH3_TILE_TYPES[Math.floor(Math.random() * MATCH3_TILE_TYPES.length)];
+}
+
+function findAllMatch3Matches() {
+    const keys = new Set();
+    const board = match3State.board;
+
+    for (let row = 0; row < MATCH3_SIZE; row++) {
+        let run = 1;
+        for (let col = 1; col <= MATCH3_SIZE; col++) {
+            const current = col < MATCH3_SIZE ? board[row][col] : null;
+            const previous = board[row][col - 1];
+
+            if (current && current === previous) {
+                run++;
+            } else {
+                if (previous && run >= 3) {
+                    for (let i = 0; i < run; i++) {
+                        keys.add(match3Key(row, col - 1 - i));
+                    }
+                }
+                run = 1;
+            }
+        }
+    }
+
+    for (let col = 0; col < MATCH3_SIZE; col++) {
+        let run = 1;
+        for (let row = 1; row <= MATCH3_SIZE; row++) {
+            const current = row < MATCH3_SIZE ? board[row][col] : null;
+            const previous = board[row - 1][col];
+
+            if (current && current === previous) {
+                run++;
+            } else {
+                if (previous && run >= 3) {
+                    for (let i = 0; i < run; i++) {
+                        keys.add(match3Key(row - 1 - i, col));
+                    }
+                }
+                run = 1;
+            }
+        }
+    }
+
+    return Array.from(keys).map((key) => {
+        const [row, col] = key.split('-').map(Number);
+        return { row, col };
+    });
+}
+
+function removeMatch3Tiles(matchSet) {
+    matchSet.forEach((key) => {
+        const [row, col] = key.split('-').map(Number);
+        match3State.board[row][col] = null;
+    });
+}
+
+function collapseMatch3Board() {
+    for (let col = 0; col < MATCH3_SIZE; col++) {
+        let writeRow = MATCH3_SIZE - 1;
+        for (let row = MATCH3_SIZE - 1; row >= 0; row--) {
+            const tile = match3State.board[row][col];
+            if (tile !== null) {
+                match3State.board[writeRow][col] = tile;
+                writeRow--;
+            }
+        }
+
+        for (let row = writeRow; row >= 0; row--) {
+            match3State.board[row][col] = null;
+        }
+    }
+}
+
+function refillMatch3Board() {
+    for (let row = 0; row < MATCH3_SIZE; row++) {
+        for (let col = 0; col < MATCH3_SIZE; col++) {
+            if (match3State.board[row][col] === null) {
+                match3State.board[row][col] = randomMatch3Tile();
+            }
+        }
+    }
+}
+
+function hasAnyValidMatch3Move() {
+    for (let row = 0; row < MATCH3_SIZE; row++) {
+        for (let col = 0; col < MATCH3_SIZE; col++) {
+            const current = { row, col };
+            const candidates = [
+                { row, col: col + 1 },
+                { row: row + 1, col }
+            ];
+
+            for (const candidate of candidates) {
+                if (candidate.row >= MATCH3_SIZE || candidate.col >= MATCH3_SIZE) continue;
+
+                swapMatch3Tiles(current, candidate);
+                const hasMatch = findAllMatch3Matches().length > 0;
+                swapMatch3Tiles(current, candidate);
+
+                if (hasMatch) return true;
+            }
+        }
+    }
+    return false;
+}
+
+function reshuffleMatch3Board() {
+    const tiles = [];
+    for (let row = 0; row < MATCH3_SIZE; row++) {
+        for (let col = 0; col < MATCH3_SIZE; col++) {
+            tiles.push(match3State.board[row][col]);
+        }
+    }
+
+    for (let attempt = 0; attempt < 60; attempt++) {
+        // Fisher-Yates shuffle
+        for (let i = tiles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+        }
+
+        for (let row = 0; row < MATCH3_SIZE; row++) {
+            for (let col = 0; col < MATCH3_SIZE; col++) {
+                match3State.board[row][col] = tiles[row * MATCH3_SIZE + col];
+            }
+        }
+
+        if (!findAllMatch3Matches().length && hasAnyValidMatch3Move()) {
+            return;
+        }
+    }
+
+    // Fallback in case reshuffle attempts fail.
+    match3State.board = createMatch3Board();
+}
+
+function swapMatch3Tiles(a, b) {
+    const temp = match3State.board[a.row][a.col];
+    match3State.board[a.row][a.col] = match3State.board[b.row][b.col];
+    match3State.board[b.row][b.col] = temp;
+}
+
+function renderMatch3Board(matchedSet = null) {
+    const boardEl = document.getElementById('match3-board');
+    if (!boardEl) return;
+
+    const flashSet = matchedSet || new Set();
+    const selected = match3State.selected;
+    const fragment = document.createDocumentFragment();
+
+    for (let row = 0; row < MATCH3_SIZE; row++) {
+        for (let col = 0; col < MATCH3_SIZE; col++) {
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'match3-cell';
+            cell.dataset.row = String(row);
+            cell.dataset.col = String(col);
+            cell.textContent = match3State.board[row][col] || '';
+
+            if (selected && selected.row === row && selected.col === col) {
+                cell.classList.add('selected');
+            }
+            if (flashSet.has(match3Key(row, col))) {
+                cell.classList.add('matched');
+            }
+
+            fragment.appendChild(cell);
+        }
+    }
+
+    boardEl.innerHTML = '';
+    boardEl.appendChild(fragment);
+}
+
+function updateMatch3Hud() {
+    document.getElementById('match3-score').textContent = String(match3State.score);
+    document.getElementById('match3-moves').textContent = String(match3State.moves);
+    document.getElementById('match3-target').textContent = String(MATCH3_TARGET_SCORE);
+}
+
+function setMatch3Message(text, success = false) {
+    const messageEl = document.getElementById('match3-message');
+    if (!messageEl) return;
+
+    messageEl.textContent = text;
+    messageEl.classList.toggle('success', success);
+}
+
+function match3Key(row, col) {
+    return `${row}-${col}`;
+}
+
+function isMatch3SessionAlive(sessionId) {
+    return match3State.active && match3State.session === sessionId && currentMinigame === 'match3';
+}
+
+function match3Delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================

@@ -218,6 +218,10 @@
                     <span class="minigame-icon">💝</span>
                     <span class="minigame-name">Heart Collector</span>
                 </button>
+                <button class="minigame-card" onclick="startMinigame('match3')">
+                    <span class="minigame-icon">🧩</span>
+                    <span class="minigame-name">Love Match-3</span>
+                </button>
             </div>
             <button class="btn-secondary" onclick="showStage('welcome')">← Back Home</button>
         </div>
@@ -313,6 +317,26 @@
                 <!-- Hearts fall here -->
             </div>
             <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
+        </div>
+    </section>
+
+    <!-- MINIGAME 7: LOVE MATCH-3 -->
+    <section id="stage-match3" class="stage">
+        <div class="stage-content game-content match3-content">
+            <div class="stage-icon">🧩</div>
+            <h2>Love Match-3</h2>
+            <p class="instruction">Swap nearby tiles, make combos, and hit the target score.</p>
+            <div class="match3-stats">
+                <div class="match3-stat">Score: <span id="match3-score">0</span></div>
+                <div class="match3-stat">Moves: <span id="match3-moves">24</span></div>
+                <div class="match3-stat">Target: <span id="match3-target">1600</span></div>
+            </div>
+            <div class="match3-board" id="match3-board" aria-label="Love Match-3 board"></div>
+            <p class="match3-message" id="match3-message">Make your first match!</p>
+            <div class="match3-actions">
+                <button class="btn-secondary" onclick="initMatch3Game()">Restart</button>
+                <button class="btn-secondary" onclick="backToMinigames()">← Back</button>
+            </div>
         </div>
     </section>
 
